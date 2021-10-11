@@ -15,6 +15,44 @@
 !set	SEEK_CUR = $01
 !set	SEEK_END = $80
 
+!zone mem_open {
+mem_open_ptr:
+	+reserve_ptr
+mem_open_size:
+	+reserve_int
+
+mem_open_return:
+	+reserve_ptr
+	
+mem_open:
+	+store_word mem_file_struct_sizeof, alloc_size
+	
+	jsr alloc
+	
+	+copy_ptr alloc_return, mem_open_return
+	+set_zp mem_io_zp, alloc_return
+	
+	ldy #$00
+	ldz #$02
+	lda mem_open_ptr
+	sta (mem_io_zp), y
+	sta (mem_io_zp), z
+	iny
+	inz
+	lda mem_open_ptr + 1
+	sta (mem_io_zp), y
+	sta (mem_io_zp), z
+	inz
+	
+	lda mem_open_size
+	sta (mem_io_zp), z
+	inz
+	lda mem_open_size + 1
+	sta (mem_io_zp), z
+	
+	rts
+}
+
 !zone mem_read {
 mem_read_ptr:
 	+reserve_ptr

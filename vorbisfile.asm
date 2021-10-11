@@ -13,7 +13,7 @@ ov_open_return:
 	+reserve_short
 	
 ov_open:
-	+short_copy ov_open_f, ov_open_callbacks_datasource, (ov_open_return - ov_open_f)
+	+short_copy ov_open_f, ov_open_callbacks_datasource, (ov_open_return - ov_open_f - 1)
 	
 	jsr ov_open_callbacks
 	
@@ -35,7 +35,7 @@ ov_open_callbacks_return:
 	+reserve_short
 	
 ov_open_callbacks:
-	+short_copy ov_open_callbacks_datasource, _ov_open1_f, (ov_open_callbacks - ov_open_callbacks_datasource)
+	+short_copy ov_open_callbacks_datasource, _ov_open1_f, (ov_open_callbacks_return - ov_open_callbacks_datasource - 1)
 	
 	jsr _ov_open1
 	
@@ -82,10 +82,10 @@ _ov_open1:
 	;  vf->callbacks = callbacks;
 	clc
 	lda _ov_open1_vf
-	adc #<OggVorbis_File_struct_sizeof
+	adc #<OggVorbis_File_struct_callbacks
 	sta volatile_zp
 	lda _ov_open1_vf + 1
-	adc #>OggVorbis_File_struct_sizeof
+	adc #>OggVorbis_File_struct_callbacks
 	sta volatile_zp + 1
 	
 	+copy_long_to_zp _ov_open1_callbacks, volatile_zp, ov_callbacks_struct_sizeof - 1
@@ -95,7 +95,7 @@ _ov_open1:
 	lda _ov_open1_vf
 	adc #<OggVorbis_File_struct_oy
 	sta ogg_sync_init_oy
-	lda _ov_open1_vf
+	lda _ov_open1_vf + 1
 	adc #>OggVorbis_File_struct_oy
 	sta ogg_sync_init_oy + 1
 	
@@ -135,12 +135,11 @@ _ov_open1:
 	adc volatile_zp + 1
 	sta ogg_stream_init_os + 1
 	
-	lda #$80
-	sta ogg_stream_init_serialno + 3
-	lda #$00
+	lda #$ff
 	sta ogg_stream_init_serialno
 	sta ogg_stream_init_serialno + 1
 	sta ogg_stream_init_serialno + 2
+	sta ogg_stream_init_serialno + 3
 	
 	jsr ogg_stream_init
 	
@@ -223,11 +222,10 @@ _fetch_headers:
 	
 	;  if(!og_ptr){
 	lda _fetch_headers_og_ptr
-	bne +
+	bne ++
 	lda _fetch_headers_og_ptr + 1
-	beq ++
+	bne ++
 	
-+	
 	;    ogg_int64_t llret=_get_next_page(vf,&og,CHUNKSIZE);
 	+copy_ptr 	_fetch_headers_vf,	_get_next_page_vf
 	+store_word .og,				_get_next_page_og
@@ -285,16 +283,16 @@ _fetch_headers:
 	;  vf->ready_state=OPENED;
 	clc
 	lda _fetch_headers_vf
-	adc OggVorbis_File_struct_ready_state
+	adc #<OggVorbis_File_struct_ready_state
 	sta volatile_zp
 	lda _fetch_headers_vf + 1
-	adc OggVorbis_File_struct_ready_state + 1
+	adc #>OggVorbis_File_struct_ready_state
 	sta volatile_zp + 1
 
 	+store_word_to_zp_offset OPENED, volatile_zp, $00
 
 	+set_zp volatile_zp, _fetch_headers_vf
-	
+
 	;
 	;  /* extract the serialnos of all BOS pages + the first set of vorbis
 	;     headers we see in the link */
@@ -497,15 +495,14 @@ _get_next_page:
 .loop:
 
 	;    if(boundary>0 && vf->offset>=boundary)return(OV_FALSE);
-	ldy #$0b
-	ldx #int64_sizeof - 1
--	lda (volatile_zp), y
-	cmp _get_next_page_boundary, x
+	lda _get_next_page_boundary + 7
 	bmi ++
-	dey
-	dex
-	bpl -
+	ldy #OggVorbis_File_struct_offset + 7
+	cmp (volatile_zp), y
+	bmi +
+	bra ++
 	
++
 	lda #$ff
 	sta _get_next_page_return
 	sta _get_next_page_return + 1
@@ -513,7 +510,6 @@ _get_next_page:
 	rts
 	
 ++
-
 	;    more=ogg_sync_pageseek(&vf->oy,og);
 	+copy_word_from_zp_offset	volatile_zp,		ogg_sync_pageseek_oy, OggVorbis_File_struct_oy
 	+copy_ptr					_get_next_page_og,	ogg_sync_pageseek_og
@@ -857,21 +853,62 @@ _add_serialno:
 	ldy #$00
 	clc
 	lda (volatile_zp), y
+	sta realloc_oldsize
 	adc #$01
 	sta (volatile_zp), y
+	sta realloc_size
 	iny
 	lda (volatile_zp), y
+	sta realloc_oldsize + 1
 	adc #$00
 	sta (volatile_zp), y
+	sta realloc_size + 1
 	
 	;
 	;  if(*serialno_list){
+	lda _add_serialno_list
+	bne +
+	lda _add_serialno_list + 1
+	bne +
+	
 	;    *serialno_list = _ogg_realloc(*serialno_list, sizeof(**serialno_list)*(*n));
+	+copy_ptr _add_serialno_list, realloc_ptr
+	
+	asl realloc_oldsize
+	rol realloc_oldsize + 1
+	
+	asl realloc_oldsize
+	rol realloc_oldsize + 1
+	
+	asl realloc_size
+	rol realloc_size + 1
+	
+	asl realloc_size
+	rol realloc_size + 1
+	
+	jsr realloc
+	
+	+copy_ptr realloc_return, _add_serialno_list
+	
+	bra ++
+	
++
 	;  }else{
 	;    *serialno_list = _ogg_malloc(sizeof(**serialno_list));
+	lda #long_sizeof
+	sta alloc_size
+	lda #$00
+	sta alloc_size + 1
+	
+	jsr alloc
+	
+	+copy_ptr alloc_return, _add_serialno_list
+	
+++
 	;  }
 	;
 	;  (*serialno_list)[(*n)-1] = s;
+	
 	rts
 	
 .s:

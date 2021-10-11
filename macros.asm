@@ -22,17 +22,19 @@
 	* = $2001
 	
 	;!set .addrStr = toIntString(.addr)
+	!set s0 = ( >.start & $f0)
 
-	!byte $09,$20			;End of command marker (first byte after the 00 terminator)
+	!byte $16,$20			;End of command marker (first byte after the 00 terminator)
 	!byte $0a,$00			;10
-	!byte $fe,$02,$30,$00	;BANK 0
-	!byte <.end, >.end		;End of command marker (first byte after the 00 terminator)
-	!byte $14,$00			;20
+	!byte $fe,$02,$30,$3a	;BANK 0:
 	!byte $9e				;SYS
-	!text "8213"
-	!byte $00
+	!text "$202C"
+	!byte $3a, $8f			;:REM
+	!fill 21, $14
+	!text "BAS", $00
 .end:
 	!byte $00,$00			;End of basic terminators
+.start:
 }
 
 !macro enable_40mhz {
@@ -104,10 +106,11 @@
 }
 
 !macro short_fill .fill_byte, .destination, .length {
-	ldx #.length
+	+set_zp volatile_zp2, .destination
+	ldy #.length
 	lda #.fill_byte
--	sta .destination
-	dex
+-	sta (volatile_zp2), y
+	dey
 	bpl -
 }
 
