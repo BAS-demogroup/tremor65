@@ -1,0 +1,7 @@
+# ignore temp/swap files
+*.tmp
+*.swp
+
+# ignore output files
+example.labels
+example.prg
