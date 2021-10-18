@@ -32,7 +32,6 @@
 	!byte $3a, $8f			;:REM
 	!fill 21, $14
 	!text "BAS", $00
-.end:
 	!byte $00,$00			;End of basic terminators
 .start:
 }
@@ -149,6 +148,13 @@
 	sta .zp
 	lda .ptr + 1
 	sta .zp + 1
+}
+
+!macro copy_word .src, .dst {
+	lda .src
+	sta .dst
+	lda .src + 1
+	sta .dst + 1
 }
 
 !macro store_word .value, .destination {

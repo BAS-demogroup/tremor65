@@ -8,6 +8,19 @@
 !zone main {
 	sei
 	
+	; Bank the I/O back in - do I even NEED I/O for DMA Audio?
+	;lda #$00
+	;tax
+	;tay
+	;taz
+	;map
+	;eom
+	
+	;lda #$37
+	;sta $00
+	;lda #$35
+	;sta $01
+	
 	+enable_40mhz
 	
 	lda #$00

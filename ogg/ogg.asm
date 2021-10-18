@@ -103,21 +103,19 @@ ogg_sync_pageseek:
 	;  long bytes=oy->fill-oy->returned;
 	ldy #ogg_sync_state_struct_fill
 	ldz #ogg_sync_state_struct_returned
-	ldx #$00
 	clc
 	lda (volatile_zp), y
 	adc (volatile_zp), z
-	sta .bytes, x
-	inx
+	sta .bytes
 	iny
 	inz
 	lda (volatile_zp), y
 	adc (volatile_zp), z
-	sta .bytes, x
+	sta .bytes + 1
 	
 	;
 	;  if(ogg_sync_check(oy))return 0;
-	+short_copy ogg_sync_pageseek_oy, ogg_sync_check_oy, $02
+	+short_copy ogg_sync_pageseek_oy, ogg_sync_check_oy, $01
 	jsr ogg_sync_check
 	
 	lda ogg_sync_check_return
@@ -524,7 +522,7 @@ ogg_sync_buffer:
 	jsr ogg_sync_check
 	
 	lda ogg_sync_check_return
-	bne +
+	beq +
 	
 	lda #$00
 	sta ogg_sync_buffer_return
@@ -538,8 +536,12 @@ ogg_sync_buffer:
 	;  if(oy->returned){
 	ldy #ogg_sync_state_struct_returned
 	lda	(volatile_zp), y
-	bne ++
+	bne +
+	iny
+	lda (volatile_zp), y
+	beq ++
 	
++
 	;    oy->fill-=oy->returned;
 	ldy #ogg_sync_state_struct_fill
 	ldz #ogg_sync_state_struct_returned
@@ -609,6 +611,9 @@ ogg_sync_buffer:
 	lda ogg_sync_buffer_size + 1
 	cmp .temp + 1
 	bpl +
+	lda ogg_sync_buffer_size
+	cmp .temp
+	bpl +
 	jmp +++
 	
 +
@@ -619,27 +624,29 @@ ogg_sync_buffer:
 	;    if(size>INT_MAX-4096-oy->fill){
 	ldy ogg_sync_state_struct_fill
 	sec
-	lda #<$EFFF
+	lda #<$6FFF
 	sbc (volatile_zp), y
 	sta .temp
 	iny
-	lda #>$EFFF
+	lda #>$6FFF
 	sbc (volatile_zp), y
 	sta .temp + 1
 	
 	lda ogg_sync_buffer_size + 1
 	cmp .temp + 1
-	bmi +
-	
+	bmi ++
+	bne +
 	lda ogg_sync_buffer_size
 	cmp .temp
-	bmi +
+	bpl +
+	bra ++
 	
++
 	;      ogg_sync_clear(oy);
 	lda ogg_sync_buffer_oy
 	sta ogg_sync_clear_oy
 	lda ogg_sync_buffer_oy + 1
-	sta ogg_sync_clear_oy
+	sta ogg_sync_clear_oy + 1
 	
 	jsr ogg_sync_clear
 	
@@ -650,7 +657,7 @@ ogg_sync_buffer:
 	
 	rts
 	
-+
+++
 	;    }
 	;    newsize=size+oy->fill+4096; /* an extra page to be nice */
 	ldy #ogg_sync_state_struct_fill
@@ -661,22 +668,24 @@ ogg_sync_buffer:
 	iny
 	lda ogg_sync_buffer_size + 1
 	adc (volatile_zp), y
+	clc
 	adc #$10
-	sta .newsize
+	sta .newsize + 1
 	
 	
 	;    if(oy->data)
 	ldy #ogg_sync_state_struct_data
 	lda (volatile_zp), y
 	bne +
+	iny
+	lda (volatile_zp), y
+	beq ++
 	
++
 	;      ret=_ogg_realloc(oy->data,newsize);
 	+copy_word_from_zp_offset volatile_zp, realloc_ptr, ogg_sync_state_struct_data
 	+copy_word_from_zp_offset volatile_zp, realloc_oldsize, ogg_sync_state_struct_storage
-	lda .newsize
-	sta realloc_size
-	lda .newsize + 1
-	sta realloc_size + 1
+	+copy_word .newsize, realloc_size
 	
 	jsr realloc
 	
@@ -685,24 +694,21 @@ ogg_sync_buffer:
 	lda realloc_return + 1
 	sta ogg_sync_buffer_return + 1
 	
-	bra ++
+	bra +++
 	
 	;    else
-+
+++
 	;      ret=_ogg_malloc(newsize);
-	lda .newsize
-	sta alloc_size
-	lda .newsize + 1
-	sta alloc_size + 1
+	+copy_word .newsize, alloc_size
 	
 	jsr alloc
 	
-	lda realloc_return
+	lda alloc_return
 	sta ogg_sync_buffer_return
-	lda realloc_return + 1
+	lda alloc_return + 1
 	sta ogg_sync_buffer_return + 1
 	
-++
++++
 	;    if(!ret){
 	lda ogg_sync_buffer_return
 	bne +
@@ -713,7 +719,7 @@ ogg_sync_buffer:
 	lda ogg_sync_buffer_oy
 	sta ogg_sync_clear_oy
 	lda ogg_sync_buffer_oy + 1
-	sta ogg_sync_clear_oy
+	sta ogg_sync_clear_oy + 1
 	
 	jsr ogg_sync_clear
 	
@@ -766,7 +772,7 @@ ogg_sync_clear:
 	;    if(oy->data)_ogg_free(oy->data);
 	;	-- At the moment, freeing doesn't exist.  It's a bit expensive.
 	;    memset(oy,0,sizeof(*oy));
-	+short_fill $00, ogg_sync_clear_oy, ogg_sync_state_struct_sizeof
+	+short_fill $00, ogg_sync_clear_oy, ogg_sync_state_struct_sizeof - 1
 
 	rts
 }

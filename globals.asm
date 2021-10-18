@@ -1,5 +1,5 @@
-!addr volatile_zp = $FE
-!addr volatile_zp2 = $FC
+!addr volatile_zp = $02
+!addr volatile_zp2 = $04
 !set READSIZE = $0400
 !set OPENED = $02
 !set OV_EBADHEADER = $FF

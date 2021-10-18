@@ -77,7 +77,7 @@ _ov_open1:
 	+long_fill $00, _ov_open1_vf, OggVorbis_File_struct_sizeof
 	
 	;  vf->datasource=f;
-	+copy_word_to_zp_offset _ov_open1_vf, volatile_zp, OggVorbis_File_struct_datasource
+	+copy_word_to_zp_offset _ov_open1_f, volatile_zp, OggVorbis_File_struct_datasource
 	
 	;  vf->callbacks = callbacks;
 	clc
@@ -257,10 +257,7 @@ _fetch_headers:
 	
 +
 	;    og_ptr=&og;
-	lda .og
-	sta _fetch_headers_og_ptr
-	lda .og + 1
-	sta _fetch_headers_og_ptr + 1
+	+store_word .og, _fetch_headers_og_ptr
 	
 ++	
 	;  }
@@ -511,7 +508,14 @@ _get_next_page:
 	
 ++
 	;    more=ogg_sync_pageseek(&vf->oy,og);
-	+copy_word_from_zp_offset	volatile_zp,		ogg_sync_pageseek_oy, OggVorbis_File_struct_oy
+	clc
+	lda volatile_zp
+	adc #<OggVorbis_File_struct_oy
+	sta ogg_sync_pageseek_oy
+	lda volatile_zp + 1
+	adc #>OggVorbis_File_struct_oy
+	sta ogg_sync_pageseek_oy + 1
+	
 	+copy_ptr					_get_next_page_og,	ogg_sync_pageseek_og
 	
 	jsr ogg_sync_pageseek
@@ -549,7 +553,7 @@ _get_next_page:
 	lda _get_next_page_vf
 	sta _get_data_vf
 	lda _get_next_page_vf + 1
-	sta _get_data_vf
+	sta _get_data_vf + 1
 	
 	jsr _get_data
 	
@@ -630,12 +634,13 @@ _get_data_return:
 
 _get_data:
 	;    char *buffer=ogg_sync_buffer(&vf->oy,READSIZE);
-	+set_zp volatile_zp, _get_data_vf
-	ldy #OggVorbis_File_struct_oy
-	lda (volatile_zp), y
+	clc
+	lda _get_data_vf
+	adc #<OggVorbis_File_struct_oy
 	sta ogg_sync_buffer_oy
-	iny
-	lda (volatile_zp), y
+	lda _get_data_vf + 1
+	; This is not a bug, it shouldn't be + 1 - instead, it is already getting the high byte.
+	adc #>OggVorbis_File_struct_oy	
 	sta ogg_sync_buffer_oy + 1
 	
 	lda #<READSIZE
@@ -645,23 +650,23 @@ _get_data:
 	
 	jsr ogg_sync_buffer
 	
-	lda ogg_sync_buffer_return
-	sta .buffer
-	lda ogg_sync_buffer_return + 1
-	sta .buffer
+	+copy_word ogg_sync_buffer_return, .buffer
 	
+	;+set_zp volatile_zp, _get_data_vf
+	
+debug_here:
 	;    long bytes=(vf->callbacks.read_func)(buffer,1,READSIZE,vf->datasource);
 	clc
-	lda volatile_zp
+	lda _get_data_vf
 	adc #<OggVorbis_File_struct_callbacks
-	sta volatile_zp2
-	lda volatile_zp + 1
+	sta volatile_zp
+	sta .callbacks
+	lda _get_data_vf + 1
 	adc #>OggVorbis_File_struct_callbacks
-	sta volatile_zp2 + 1
-	+copy_word_from_zp_offset volatile_zp, .callbacks, $00
+	sta volatile_zp + 1
+	sta .callbacks + 1
 	
-	+set_zp volatile_zp2, .callbacks
-	+copy_word_from_zp_offset volatile_zp2, .read_func, ov_callbacks_struct_read_func
+	+copy_word_from_zp_offset volatile_zp, .read_func, ov_callbacks_struct_read_func
 	
 	sec
 	lda .read_func
