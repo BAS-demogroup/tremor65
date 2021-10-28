@@ -88,12 +88,12 @@ mem_read:
 	sbc .max + 1
 	sta .max + 1
 	
-	lda mem_read_size
-	cmp .max
-	bmi +
-	
 	lda mem_read_size + 1
 	cmp .max + 1
+	bmi +
+	
+	lda mem_read_size
+	cmp .max
 	bmi +
 	
 	lda .max
@@ -116,9 +116,9 @@ mem_read:
 	lda mem_io_zp + 1
 	sta copy_dma + 5
 	
-	lda mem_io_zp
+	lda mem_io_zp2
 	sta copy_dma + 7
-	lda mem_io_zp + 1
+	lda mem_io_zp2 + 1
 	sta copy_dma + 8
 	
 	+RunDMAJob copy_dma

@@ -104,27 +104,28 @@
 	bpl -
 }
 
-!macro short_fill .fill_byte, .destination, .length {
-	+set_zp volatile_zp2, .destination
-	ldy #.length
-	lda #.fill_byte
--	sta (volatile_zp2), y
-	dey
-	bpl -
-}
-
 !macro long_fill .fill_byte, .destination, .length {
 	lda #<.length
 	sta fill_dma + 2
 	lda #>.length
 	sta fill_dma + 3
-	lda #.fill_byte
-	sta fill_dma + 4
+	;lda #.fill_byte
+	;sta fill_dma + 4
 	lda .destination
 	sta fill_dma + 7
 	lda .destination + 1
 	sta fill_dma + 8
 	+RunDMAJob fill_dma
+}
+
+!macro short_fill .fill_byte, .destination, .length {
+	+long_fill .fill_byte, .destination, .length
+;	+set_zp volatile_zp2, .destination
+;	ldy #.length
+;	lda #.fill_byte
+;-	sta (volatile_zp2), y
+;	dey
+;	bpl -
 }
 
 !macro long_copy .source, .destination, .length {

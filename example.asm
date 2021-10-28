@@ -8,19 +8,6 @@
 !zone main {
 	sei
 	
-	; Bank the I/O back in - do I even NEED I/O for DMA Audio?
-	;lda #$00
-	;tax
-	;tay
-	;taz
-	;map
-	;eom
-	
-	;lda #$37
-	;sta $00
-	;lda #$35
-	;sta $01
-	
 	+enable_40mhz
 	
 	lda #$00
@@ -28,19 +15,14 @@
 	sta .current_section
 	sta .current_section + 1
 	
-	lda #<ogg_file
-	sta mem_open_ptr
-	lda #>ogg_file
-	sta mem_open_ptr + 1
-	
-	lda #<ogg_file_size
-	sta mem_open_size
-	lda #>ogg_file_size
-	sta mem_open_size + 1
+	+store_word ogg_file, mem_open_ptr
+	+store_word ogg_file_size, mem_open_size
 	
 	jsr mem_open
-	
+
 	+copy_ptr mem_open_return, .f
+	
+	; ov_open(stdin, &vf, NULL, 0)
 	+copy_ptr .f, ov_open_f
 	+store_word .vf, ov_open_vf
 	

@@ -215,6 +215,7 @@ _fetch_headers_return:
 	+reserve_short
 
 _fetch_headers:
+debug_here:
 	;	int allbos=0;
 	lda #$00
 	sta .allbos
@@ -485,15 +486,17 @@ _get_next_page:
 	sta _get_next_page_boundary, x
 	iny
 	inx
-	cpx #$07
+	cpx #int64_sizeof
 	bne -
 
 	;  while(1){
 .loop:
 
+	+set_zp volatile_zp, _get_next_page_vf
 	;    if(boundary>0 && vf->offset>=boundary)return(OV_FALSE);
 	lda _get_next_page_boundary + 7
 	bmi ++
+	lda #$00
 	ldy #OggVorbis_File_struct_offset + 7
 	cmp (volatile_zp), y
 	bmi +
@@ -516,7 +519,7 @@ _get_next_page:
 	adc #>OggVorbis_File_struct_oy
 	sta ogg_sync_pageseek_oy + 1
 	
-	+copy_ptr					_get_next_page_og,	ogg_sync_pageseek_og
+	+copy_ptr	_get_next_page_og,	ogg_sync_pageseek_og
 	
 	jsr ogg_sync_pageseek
 
@@ -574,7 +577,7 @@ _get_next_page:
 	
 +
 	;          if(ret<0)return(OV_EREAD);
-	lda _get_data_return
+	lda _get_data_return + 3
 	bpl +++
 	
 	lda #$FF
@@ -654,7 +657,6 @@ _get_data:
 	
 	;+set_zp volatile_zp, _get_data_vf
 	
-debug_here:
 	;    long bytes=(vf->callbacks.read_func)(buffer,1,READSIZE,vf->datasource);
 	clc
 	lda _get_data_vf
@@ -710,6 +712,7 @@ debug_here:
 	;    if(bytes>0)ogg_sync_wrote(&vf->oy,bytes);
 	lda .bytes + 1
 	bmi +
+	beq +
 	
 	ldy #OggVorbis_File_struct_oy
 	lda (volatile_zp), y

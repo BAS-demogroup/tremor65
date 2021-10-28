@@ -7,7 +7,7 @@ ogg_sync_init_return:
 	
 ogg_sync_init:
 	;    memset(oy,0,sizeof(*oy));
-	+short_fill $00, ogg_sync_init_oy, ogg_sync_state_struct_sizeof
+	+long_fill $00, ogg_sync_init_oy, ogg_sync_state_struct_sizeof
 	
 	;  return(0);
 	rts
@@ -69,7 +69,7 @@ ogg_stream_init:
 	adc volatile_zp + 1
 	sta volatile_zp + 1
 	
-	+copy_long_to_zp ogg_stream_init_serialno, volatile_zp, int64_sizeof - 1
+	+copy_long_to_zp ogg_stream_init_serialno, volatile_zp, long_sizeof - 1
 	
 	rts
 }
@@ -87,7 +87,7 @@ ogg_sync_pageseek:
 	;  unsigned char *page=oy->data+oy->returned;
 	+set_zp volatile_zp, ogg_sync_pageseek_oy
 	+copy_word_from_zp_offset volatile_zp, .page, ogg_sync_state_struct_data
-	
+
 	ldy #ogg_sync_state_struct_returned
 	ldx #$00
 	clc
@@ -115,11 +115,12 @@ ogg_sync_pageseek:
 	
 	;
 	;  if(ogg_sync_check(oy))return 0;
-	+short_copy ogg_sync_pageseek_oy, ogg_sync_check_oy, $01
+	+copy_word ogg_sync_pageseek_oy, ogg_sync_check_oy
+
 	jsr ogg_sync_check
 	
 	lda ogg_sync_check_return
-	bne +
+	beq +
 	
 	lda #$00
 	sta ogg_sync_pageseek_return
@@ -132,14 +133,18 @@ ogg_sync_pageseek:
 	;  if(oy->headerbytes==0){
 	ldy #ogg_sync_state_struct_headerbytes
 	lda (volatile_zp), y
-	bne +++
-	iny
+	beq +
+	jmp +++
++	iny
 	lda (volatile_zp), y
 	bne +++
 	
 +
 	;    int headerbytes,i;
 	;    if(bytes<27)return(0); /* not enough for a header */
+	lda .bytes + 1
+	cmp #$01
+	bpl +
 	lda .bytes
 	cmp #$18
 	bpl +
@@ -772,7 +777,7 @@ ogg_sync_clear:
 	;    if(oy->data)_ogg_free(oy->data);
 	;	-- At the moment, freeing doesn't exist.  It's a bit expensive.
 	;    memset(oy,0,sizeof(*oy));
-	+short_fill $00, ogg_sync_clear_oy, ogg_sync_state_struct_sizeof - 1
+	+long_fill $00, ogg_sync_clear_oy, ogg_sync_state_struct_sizeof
 
 	rts
 }
