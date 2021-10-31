@@ -139,7 +139,6 @@ ogg_sync_pageseek:
 	lda (volatile_zp), y
 	bne +++
 	
-+
 	;    int headerbytes,i;
 	;    if(bytes<27)return(0); /* not enough for a header */
 	lda .bytes + 1

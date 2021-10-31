@@ -231,10 +231,10 @@ debug_here:
 	+copy_ptr 	_fetch_headers_vf,	_get_next_page_vf
 	+store_word .og,				_get_next_page_og
 	
-	lda #$ff
-	sta _get_next_page_boundary
+	lda #$10
 	sta _get_next_page_boundary + 1
 	lda #$00
+	sta _get_next_page_boundary
 	sta _get_next_page_boundary + 2
 	sta _get_next_page_boundary + 3
 	sta _get_next_page_boundary + 4

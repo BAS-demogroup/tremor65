@@ -18,7 +18,7 @@
 !set ogg_sync_state_struct_data = $00
 ;	data		ptr		2 bytes
 !set ogg_sync_state_struct_storage = ogg_sync_state_struct_data + ptr_sizeof
-;	storage		int		2 bytes
+;	storage		long	2 bytes
 !set ogg_sync_state_struct_fill = ogg_sync_state_struct_storage + int_sizeof
 ;	fill		int		2 bytes
 !set ogg_sync_state_struct_returned = ogg_sync_state_struct_fill + int_sizeof
