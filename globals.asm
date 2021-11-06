@@ -1,8 +1,20 @@
-!addr volatile_zp = $02
-!addr volatile_zp2 = $04
-!set READSIZE = $0400
-!set OPENED = $02
-!set OV_EBADHEADER = $FF
+!addr volatile_zp		= $02
+!addr vf_ptr			= $04
+!addr f_ptr				= $06
+!addr oy_ptr			= $08
+!addr vi_ptr			= $0a
+!addr vc_ptr			= $0c
+!addr os_ptr			= $0e
+!addr body_data_ptr		= $10
+!addr lacing_vals_ptr	= $12
+!addr granule_vals_ptr	= $14
+!addr serialno_list_ptr	= $16
+!addr og_ptr			= $18
+!addr codec_setup_ptr	= $1a
+
+!set READSIZE		= $0400
+!set OPENED			= $02
+!set OV_EBADHEADER	= $ff
 
 fill_dma:
 	+DMAFillJob $00, $0000, $0000, $00

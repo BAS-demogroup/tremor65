@@ -4,12 +4,14 @@
 ;	start	ptr		2 bytes
 !set mem_file_struct_current = mem_file_struct_start + ptr_sizeof
 ;	current	ptr		2 bytes
+!set mem_file_struct_end = mem_file_struct_current + ptr_sizeof
+;	end		ptr		2 bytes
 !set mem_file_struct_length = mem_file_struct_current + ptr_sizeof
 ;	length	int		2 bytes
 !set mem_file_struct_sizeof = mem_file_struct_length + int_sizeof
 
-!addr	mem_io_zp = $fa
-!addr	mem_io_zp2 = $f8
+;!addr	mem_io_zp = $fa
+;!addr	mem_io_zp2 = $f8
 
 !set	SEEK_SET = $00
 !set	SEEK_CUR = $01
@@ -20,35 +22,30 @@ mem_open_ptr:
 	+reserve_ptr
 mem_open_size:
 	+reserve_int
-
-mem_open_return:
-	+reserve_ptr
 	
 mem_open:
-	+store_word mem_file_struct_sizeof, alloc_size
-	
-	jsr alloc
-	
-	+copy_ptr alloc_return, mem_open_return
-	+set_zp mem_io_zp, alloc_return
+	lda #<f
+	sta f_ptr
+	lda #>f
+	sta f_ptr + 1
 	
 	ldy #$00
 	ldz #$02
 	lda mem_open_ptr
-	sta (mem_io_zp), y
-	sta (mem_io_zp), z
+	sta (f_ptr), y
+	sta (f_ptr), z
 	iny
 	inz
 	lda mem_open_ptr + 1
-	sta (mem_io_zp), y
-	sta (mem_io_zp), z
+	sta (f_ptr), y
+	sta (f_ptr), z
 	inz
 	
 	lda mem_open_size
-	sta (mem_io_zp), z
+	sta (f_ptr), z
 	inz
 	lda mem_open_size + 1
-	sta (mem_io_zp), z
+	sta (f_ptr), z
 	
 	rts
 }
@@ -58,25 +55,25 @@ mem_read_ptr:
 	+reserve_ptr
 mem_read_size:
 	+reserve_int
-mem_read_stream:
-	+reserve_ptr
+;mem_read_stream:
+;	+reserve_ptr
 
 mem_read_return:
 	+reserve_int
 	
 mem_read:
-	+set_zp mem_io_zp, mem_read_stream
-	+copy_word_from_zp_offset mem_io_zp, .start, mem_file_struct_start
-	+copy_word_from_zp_y mem_io_zp, .current
-	+copy_word_from_zp_y mem_io_zp, .length
-	+set_zp mem_io_zp, .current
-	+set_zp mem_io_zp2, mem_read_ptr
+	; At this time, this function returns a pointer directly inside the memory
+	; rather than a copy.
+	
+	+copy_word_from_zp_offset f_ptr, .start, mem_file_struct_start
+	+copy_word_from_zp_y f_ptr, .current
+	+copy_word_from_zp_y f_ptr, .length
 	
 	sec
-	lda mem_io_zp
+	lda .current
 	sbc .start
 	sta .max
-	lda mem_io_zp + 1
+	lda .current + 1
 	sbc .start + 1
 	sta .max + 1
 	
@@ -88,40 +85,30 @@ mem_read:
 	sbc .max + 1
 	sta .max + 1
 	
-	lda mem_read_size + 1
-	cmp .max + 1
-	bmi +
+;	lda mem_read_size + 1
+;	cmp .max + 1
+;	bmi +
 	
-	lda mem_read_size
-	cmp .max
-	bmi +
+;	lda mem_read_size
+;	cmp .max
+;	bmi +
 	
 	lda .max
-	sta copy_dma + 2
 	sta mem_read_return
 	lda .max + 1
-	sta copy_dma + 3
 	sta mem_read_return + 1
-	bra ++
+;	bra ++
 	
-+	lda mem_read_size
-	sta copy_dma + 2
-	sta mem_read_return
-	lda mem_read_size + 1
-	sta copy_dma + 3
-	sta mem_read_return + 1
+;+	lda mem_read_size
+;	sta mem_read_return
+;	lda mem_read_size + 1
+;	sta mem_read_return + 1
 	
-++	lda mem_io_zp
-	sta copy_dma + 4
-	lda mem_io_zp + 1
-	sta copy_dma + 5
-	
-	lda mem_io_zp2
-	sta copy_dma + 7
-	lda mem_io_zp2 + 1
-	sta copy_dma + 8
-	
-	+RunDMAJob copy_dma
+++	
+	lda .current
+	sta mem_read_ptr
+	lda .current + 1
+	sta mem_read_ptr + 1
 	
 	rts
 
@@ -136,8 +123,8 @@ mem_read:
 }
 
 !zone mem_seek {
-mem_seek_stream:
-	+reserve_ptr
+;mem_seek_stream:
+;	+reserve_ptr
 mem_seek_offset:
 	+reserve_int
 mem_seek_whence:
@@ -147,7 +134,7 @@ mem_seek_return:
 	+reserve_short
 	
 mem_seek:
-	+set_zp mem_seek_stream, mem_io_zp
+	;+set_zp mem_seek_stream, mem_io_zp
 	
 	lda #SEEK_END
 	and mem_seek_whence
@@ -166,8 +153,8 @@ mem_seek:
 	; Seek from start
 	ldy #$01
 	ldz #$03
--	lda (mem_io_zp), y
-	sta (mem_io_zp), z
+-	lda (f_ptr), y
+	sta (f_ptr), z
 	dez
 	dey
 	bpl -
@@ -177,13 +164,13 @@ mem_seek:
 +	; Seek from current
 	ldy #$02
 	clc
-	lda (mem_io_zp), y
+	lda (f_ptr), y
 	adc mem_seek_offset
-	sta (mem_io_zp), y
+	sta (f_ptr), y
 	iny
-	lda (mem_io_zp), y
+	lda (f_ptr), y
 	adc mem_seek_offset + 1
-	sta (mem_io_zp), y
+	sta (f_ptr), y
 	; no safeguard, at least at this time.
 	
 	lda #$00

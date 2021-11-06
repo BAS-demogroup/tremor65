@@ -18,7 +18,7 @@
 !set ogg_sync_state_struct_data = $00
 ;	data		ptr		2 bytes
 !set ogg_sync_state_struct_storage = ogg_sync_state_struct_data + ptr_sizeof
-;	storage		long	2 bytes
+;	storage		int		2 bytes
 !set ogg_sync_state_struct_fill = ogg_sync_state_struct_storage + int_sizeof
 ;	fill		int		2 bytes
 !set ogg_sync_state_struct_returned = ogg_sync_state_struct_fill + int_sizeof
@@ -33,19 +33,19 @@
 
 ; ogg_stream_state struct:	338 bytes total
 ;
-!set ogg_stream_state_struct_body_data = $00
-;	body_data		ptr			2 bytes
-!set ogg_stream_state_struct_body_storage = ogg_stream_state_struct_body_data + ptr_sizeof
+;!set ogg_stream_state_struct_body_data = $00
+;;	body_data		ptr			2 bytes
+!set ogg_stream_state_struct_body_storage = $00
 ;	body_storage	int			2 bytes
 !set ogg_stream_state_struct_body_fill = ogg_stream_state_struct_body_storage + int_sizeof
 ;	body_fill		int			2 bytes
 !set ogg_stream_state_struct_body_returned = ogg_stream_state_struct_body_fill + int_sizeof
 ;	body_returned	int			2 bytes
-!set ogg_stream_state_struct_lacing_vals = ogg_stream_state_struct_body_returned + int_sizeof
-;	lacing_vals		ptr			2 bytes
-!set ogg_stream_state_struct_granule_vals = ogg_stream_state_struct_lacing_vals + ptr_sizeof
-;	granule_vals	ptr			2 bytes
-!set ogg_stream_state_struct_lacing_storage = ogg_stream_state_struct_granule_vals + ptr_sizeof
+;!set ogg_stream_state_struct_lacing_vals = ogg_stream_state_struct_body_returned + int_sizeof
+;;	lacing_vals		ptr			2 bytes
+;!set ogg_stream_state_struct_granule_vals = ogg_stream_state_struct_body_returned + int_sizeof
+;;	granule_vals	ptr			2 bytes
+!set ogg_stream_state_struct_lacing_storage = ogg_stream_state_struct_body_returned + int_sizeof
 ;	lacing_storage	long		4 bytes
 !set ogg_stream_state_struct_lacing_fill = ogg_stream_state_struct_lacing_storage + long_sizeof
 ;	lacing_fill		long		4 bytes
@@ -283,17 +283,17 @@
 
 ; OggVorbis_File struct:	513 bytes total
 ;
-!set OggVorbis_File_struct_datasource = $00
-;	datasource			ptr						2 bytes
-!set OggVorbis_File_struct_seekable = OggVorbis_File_struct_datasource + ptr_sizeof
+;!set OggVorbis_File_struct_datasource = $00
+;;	datasource			ptr						2 bytes
+!set OggVorbis_File_struct_seekable = $00
 ;	seekable			bool					1 byte
 !set OggVorbis_File_struct_offset = OggVorbis_File_struct_seekable + bool_sizeof
 ;	offset				int64					8 bytes
 !set OggVorbis_File_struct_end = OggVorbis_File_struct_offset + int64_sizeof
 ;	end					int						2 bytes
-!set OggVorbis_File_struct_oy = OggVorbis_File_struct_end + int_sizeof
-;	oy					ogg_sync_state		   14 bytes
-!set OggVorbis_File_struct_links = OggVorbis_File_struct_oy + ogg_sync_state_struct_sizeof
+;!set OggVorbis_File_struct_oy = OggVorbis_File_struct_end + int_sizeof
+;;	oy					ogg_sync_state		   14 bytes
+!set OggVorbis_File_struct_links = OggVorbis_File_struct_end + int_sizeof
 ;	links				int						2 bytes
 !set OggVorbis_File_struct_offsets = OggVorbis_File_struct_links + int_sizeof
 ;	offsets				ptr						2 bytes
@@ -325,6 +325,6 @@
 ;	vd					vorbis_dsp_state	   51 bytes
 !set OggVorbis_File_struct_vb = OggVorbis_File_struct_vd + vorbis_dsp_state_sizeof
 ;	vb					vorbis_block		   61 bytes
-!set OggVorbis_File_struct_callbacks = OggVorbis_File_struct_vb + vorbis_block_struct_sizeof
-;	callbacks			ov_callbacks			8 bytes
-!set OggVorbis_File_struct_sizeof = OggVorbis_File_struct_callbacks + ov_callbacks_struct_sizeof
+;!set OggVorbis_File_struct_callbacks = OggVorbis_File_struct_vb + vorbis_block_struct_sizeof
+;;	callbacks			ov_callbacks			8 bytes
+!set OggVorbis_File_struct_sizeof = OggVorbis_File_struct_vb + vorbis_block_struct_sizeof
